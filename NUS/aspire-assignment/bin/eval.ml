@@ -49,11 +49,12 @@ let get_float (t: t): float =
   
 
 
-(* I'm sure the order of operations here is totally mangled, but it shouldn't matter since we don't allow env name shadowing (duplicate identifiers) :) *)
+(* this is FIFO, can swap the reduce and accumulator call order to reverse it *)
 let rec reduce (identity: 'a) (accumulator: 'a -> 'b -> 'a) (list: 'b list): 'a = 
   match list with
   | [] -> identity
   | (head: 'b) :: (tail: 'b list) -> reduce (accumulator identity head) accumulator tail
+
 
 (* Evaluate an expression in a given environment.  EvalExn on errors. *)
 let rec eval_expr (e: Untyped.expr) (env: env): Value.t =
@@ -65,7 +66,7 @@ let rec eval_expr (e: Untyped.expr) (env: env): Value.t =
   
     match left, right with 
     | Float lf, Float rf -> Float (eval_binop op lf rf)
-    | _, _ -> raise (EvalExn "Expecting floats for binary operator")
+    | _, _ -> raise (EvalExn "Binary operation on non-float values")
   )
 
   | If0 (con, yes_b, no_b) -> (
@@ -78,8 +79,11 @@ let rec eval_expr (e: Untyped.expr) (env: env): Value.t =
     match (find_duplicate var_list) with 
     | Some dupe -> (raise (EvalExn ("Duplicate identifier: " ^ (let (ident, _) = dupe in (let Ident ident_name = ident in (ident_name))))))
     | None -> (
-      let accumulator = fun (a: env) (b: ): env -> a in
-      let new_env = (reduce env (accumulator) var_list) in 
+      let accumulator = fun (inner_env: env) (var: Untyped.binding): env -> 
+        (let (var_name, var_value) = var in env_update var_name (eval_expr var_value env) inner_env) 
+      in 
+      let new_env = (reduce env (accumulator) var_list) 
+      in 
       (eval_expr expr new_env)
 
     )
@@ -90,12 +94,14 @@ let rec eval_expr (e: Untyped.expr) (env: env): Value.t =
     | Some expr_inner -> expr_inner
     | None -> raise (EvalExn ("Undefined variable: " ^ (let Ident var_name = var in var_name)))
   )
-  
-  
-  
-  
 
-  | _ -> failwith "NYI eval other case"
+  | Fun (args, body) -> (
+    Closure (args, body, env) (* todo dynamic scope bad!*)
+  )
+
+
+
+  | App (the_fun, args) -> (failwith ("APP NYI LOL. THE FUN NAME IS: " ^ (Surface.show_expr the_fun) ^ (Surface.show_expr args.)))
 
 let eval (p: Untyped.prog) : Value.t Value.result =
   try Value (eval_expr p EmptyEnv)
