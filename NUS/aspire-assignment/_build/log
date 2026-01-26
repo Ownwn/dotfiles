@@ -1,4 +1,4 @@
-# dune exec -- aspire test owen-tests --detail --ref=parse
+# dune exec -- aspire test ../aspire-tests --detail --ref=parse
 # OCAMLPARAM: unset
 # Shared cache: enabled-except-user-rules
 # Shared cache location: /home/owen/.cache/dune/db
@@ -13,4 +13,4 @@
 #  ; build_dir = In_build_dir "default"
 #  ; instrument_with = []
 #  }
-$ /home/owen/.opam/cs4215/bin/ocamlc.opt -config > /tmp/dune_ee4e07_output
+$ /home/owen/.opam/cs4215/bin/ocamlc.opt -config > /tmp/dune_c2a316_output

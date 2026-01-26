@@ -56,6 +56,15 @@ let rec reduce (identity: 'a) (accumulator: 'a -> 'b -> 'a) (list: 'b list): 'a 
   | (head: 'b) :: (tail: 'b list) -> reduce (accumulator identity head) accumulator tail
 
 
+(* Adds all the variables in new_var_list to old_env, they should shadow/override any old definitions *)
+let add_all_to_env (old_env: env) (eval_fn: Untyped.expr -> env -> Value.t) (new_var_list: Untyped.binding list): env = 
+  let accumulator = fun (inner_env: env) (var: Untyped.binding): env -> 
+      (let (var_name, var_value) = var in env_update var_name (eval_fn var_value old_env) inner_env) 
+      in 
+      (reduce old_env (accumulator) new_var_list) 
+
+
+
 (* Evaluate an expression in a given environment.  EvalExn on errors. *)
 let rec eval_expr (e: Untyped.expr) (env: env): Value.t =
   match e with 
@@ -79,10 +88,7 @@ let rec eval_expr (e: Untyped.expr) (env: env): Value.t =
     match (find_duplicate var_list) with 
     | Some dupe -> (raise (EvalExn ("Duplicate identifier: " ^ (let (ident, _) = dupe in (let Ident ident_name = ident in (ident_name))))))
     | None -> (
-      let accumulator = fun (inner_env: env) (var: Untyped.binding): env -> 
-        (let (var_name, var_value) = var in env_update var_name (eval_expr var_value env) inner_env) 
-      in 
-      let new_env = (reduce env (accumulator) var_list) 
+      let new_env = add_all_to_env env (eval_expr) var_list
       in 
       (eval_expr expr new_env)
 
