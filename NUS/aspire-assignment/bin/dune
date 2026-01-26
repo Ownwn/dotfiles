@@ -1,0 +1,15 @@
+(executable
+ (public_name aspire)
+ (name main)
+ (modes byte)
+ (libraries alcotest cmdliner menhirLib qcheck-core qcheck-core.runner sexplib aspire_assignment)
+ (instrumentation (backend bisect_ppx))
+ (preprocess (staged_pps ppx_import ppx_deriving.show ppx_deriving.eq ppx_deriving_qcheck))
+ (ocamlc_flags (:standard -I lib/bc aspire.cma))
+)
+
+(copy_files (files ../lib/bc/*.cma))
+(copy_files (files ../lib/bc/*.cmi))
+
+(include_subdirs unqualified)
+(env (dev (flags (:standard -I ../lib/bc -warn-error -A))))

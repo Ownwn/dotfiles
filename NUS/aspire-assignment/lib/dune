@@ -1,0 +1,11 @@
+(library
+ (name aspire_assignment)
+ (modes byte)
+ (libraries alcotest cmdliner menhirLib qcheck-core qcheck-core.runner sexplib)
+ (instrumentation (backend bisect_ppx))
+ (preprocess (staged_pps ppx_import ppx_deriving.show ppx_deriving.eq ppx_deriving_qcheck))
+ (flags (:standard -I lib/bc aspire.cma))
+)
+
+; OMIT to avoid bc/ directory: (include_subdirs unqualified)
+(env (dev (flags (:standard -I ../lib/bc -warn-error -A))))

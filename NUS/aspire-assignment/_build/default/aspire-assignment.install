@@ -1,0 +1,11 @@
+lib: [
+  "_build/install/default/lib/aspire-assignment/META"
+  "_build/install/default/lib/aspire-assignment/dune-package"
+  "_build/install/default/lib/aspire-assignment/opam"
+]
+bin: [
+  "_build/install/default/bin/aspire"
+]
+doc: [
+  "_build/install/default/doc/aspire-assignment/README.md"
+]
