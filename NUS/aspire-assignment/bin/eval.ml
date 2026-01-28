@@ -67,13 +67,37 @@ let rec reduce (identity: 'a) (accumulator: 'a -> 'b -> 'a) (list: 'b list): 'a 
   | (head: 'b) :: (tail: 'b list) -> reduce (accumulator identity head) accumulator tail
 
 
-(* Adds all the variables in new_var_list to old_env, they should shadow/override any old definitions *)
-let add_all_to_env (old_env: env) (eval_fn: Untyped.expr -> env -> Value.t) (new_var_list: Untyped.binding list): env = 
+(* Adds all the variables in new_var_list to old_env (evaluates them first), they should shadow/override any old definitions *)
+let add_exprs_to_env (old_env: env) (eval_fn: Untyped.expr -> env -> Value.t) (new_var_list: Untyped.binding list): env = 
   let accumulator = fun (inner_env: env) (var: Untyped.binding): env -> 
       (let (var_name, var_value) = var in env_update var_name (eval_fn var_value old_env) inner_env) 
       in 
       (reduce old_env (accumulator) new_var_list) 
 
+      
+(* Like add_exprs_to_env but takes already-evaluated env-vars *)
+let add_values_to_env (old_env: env) (new_var_list: (Ident.t * Value.t) list): env =
+  let accumulator = fun (inner_env: env) (var: (Ident.t * Value.t)): env -> 
+      (let (var_name, var_value) = var in env_update var_name var_value inner_env) 
+      in 
+      (reduce old_env (accumulator) new_var_list) 
+
+
+
+let rec zip (l1: 'a list) (l2: 'b list) (zipper: 'a -> 'b -> 'c): 'c list =
+    let fail = fun () -> (failwith "List sizes differ in zip call :(") in
+    match l1 with 
+    | [] -> (match l2 with | [] -> [] | _ :: _ -> fail ())
+    | head :: tail -> (
+      match l2 with 
+      | [] -> fail ()
+      | head2 :: tail2 -> ((zipper head head2) :: (zip tail tail2 zipper))
+    )
+
+let rec map(l: 'a list) (mapper: 'a -> 'b): 'b list = 
+  match l with 
+  | [] -> []
+  | head :: tail -> (mapper head) :: map tail mapper
 
 
 (* Evaluate an expression in a given environment.  EvalExn on errors. *)
@@ -99,7 +123,7 @@ let rec eval_expr (e: Untyped.expr) (env: env): Value.t =
     match (find_duplicate var_list) with 
     | Some dupe -> (raise (EvalExn ("Duplicate identifier: " ^ (let (ident, _) = dupe in (let Ident ident_name = ident in (ident_name))))))
     | None -> (
-      let new_env = add_all_to_env env (eval_expr) var_list
+      let new_env = add_exprs_to_env env (eval_expr) var_list
       in 
       (eval_expr expr new_env)
 
@@ -126,12 +150,19 @@ let rec eval_expr (e: Untyped.expr) (env: env): Value.t =
       if (args_length <> params_length) then 
         (raise (EvalExn ("Function expected " ^ (string_of_int params_length) ^ " arguments but got " ^ (string_of_int args_length)))) 
       else (
-        (args_length |> string_of_int |> print_endline);
-        (params_length |> string_of_int |> print_endline); 
-        (debug_print_list params (fun head -> let (Ident s) = head in s));
-        ();
-
-        Float 5578.
+        (* (args_length |> string_of_int |> print_endline);
+        (params_length |> string_of_int |> print_endline);  *)
+        (* (debug_print_list params (fun head -> let (Ident s) = head in s));
+        (debug_print_list args (fun a -> (match eval_expr a env with 
+        
+        | Float f -> (f |> string_of_float)
+        | Closure (ll,mm,nn) -> ("nasty closure")
+        
+        ))); *)
+        let evaled_args: Value.t list = (map args (fun arg_p -> eval_expr arg_p env)) in
+        let zipped_args = (zip evaled_args params (fun arg_p -> fun param_p -> ( (param_p, arg_p)))) in
+        let final_call_env = (add_values_to_env closure_env zipped_args) in (* todo: devious testcase here. Add to env, and override inside closure capture (not call). try other permutations too*) 
+        (eval_expr body final_call_env)
 
       )
 
