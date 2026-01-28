@@ -13,7 +13,10 @@ let parse_binop (s: string) : binop =
 let make_ident (s: string) : Ident.t option =
   match float_of_string_opt s with
   | Some _ -> None
-  | None -> Some (Ident.Ident s)
+  | None ->
+    if List.mem s ["+"; "-"; "*"; "/"; "let"; "if0"; "fun"]
+    then None
+    else Some (Ident.Ident s)
 
 
 (* Raise a ParseExn if any of the idneitifiers are duplicates of each other.

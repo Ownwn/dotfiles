@@ -1,5 +1,5 @@
 result: |
-  (Value.Value (Value.Float -1.))
+  (Value.Value (Value.Float 6.))
 stdout: |
   <EOF>
 stderr: |

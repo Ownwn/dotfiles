@@ -29,6 +29,10 @@ let eval_binop (op: Untyped.binop) (x: float) (y: float): float =
   (* echo "(+ 1 2)" | dune exec -- aspire test owen-tests --detail --ref=all *)
 
 
+let rec length(l: 'a list): int = 
+  match l with 
+  | [] -> 0
+  | _ :: tail -> 1 + length tail
 
 let rec contains (x: 'a) (l: 'a list): bool =
   match l with
@@ -47,6 +51,13 @@ let get_float (t: t): float =
   | Float f -> f
   | _ -> failwith "Expected float when evaluating expr!"
   
+
+let rec debug_print_list(l: 'a list) (stringify: 'a -> string): unit = 
+  match l with 
+  | [] -> ()
+  | head :: tail -> 
+    let str = (stringify head) in 
+     (print_endline str); debug_print_list tail stringify
 
 
 (* this is FIFO, can swap the reduce and accumulator call order to reverse it *)
@@ -107,7 +118,27 @@ let rec eval_expr (e: Untyped.expr) (env: env): Value.t =
 
 
 
-  | App (the_fun, args) -> (failwith ("APP NYI LOL. THE FUN NAME IS: " ^ (Surface.show_expr the_fun) ^ (Surface.show_expr args.)))
+  | App (the_fun, args) -> (
+    match (eval_expr the_fun env) with 
+    | Closure (params, body, closure_env) -> (
+      let args_length = (length args) in
+      let params_length = (length params) in
+      if (args_length <> params_length) then 
+        (raise (EvalExn ("Function expected " ^ (string_of_int params_length) ^ " arguments but got " ^ (string_of_int args_length)))) 
+      else (
+        (args_length |> string_of_int |> print_endline);
+        (params_length |> string_of_int |> print_endline); 
+        (debug_print_list params (fun head -> let (Ident s) = head in s));
+        ();
+
+        Float 5578.
+
+      )
+
+
+    )
+    | _ -> (raise (EvalExn "Attempting to call a non-function value") )
+  )
 
 let eval (p: Untyped.prog) : Value.t Value.result =
   try Value (eval_expr p EmptyEnv)
