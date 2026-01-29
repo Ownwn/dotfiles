@@ -1,1 +1,2 @@
-(+ 1 -2)
+(let ((a 42)) (let ((dynamic_troll (fun (b) a)) (a 3)) (dynamic_troll 6)))
+
