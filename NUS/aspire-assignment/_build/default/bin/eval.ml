@@ -23,11 +23,8 @@ let eval_binop (op: Untyped.binop) (x: float) (y: float): float =
   | Mul -> x *. y
   | Div -> (if (not (y = 0.)) then x /. y else raise (EvalExn "Division by zero"))
   | Sub -> x -. y
-  
-  
-  (* todo delme *)
-  (* echo "(+ 1 2)" | dune exec -- aspire test owen-tests --detail --ref=all *)
 
+  (* dune exec -- aspire test owen-tests --detail --ref=all *)
 
 let rec length(l: 'a list): int = 
   match l with 
@@ -114,8 +111,12 @@ let rec eval_expr (e: Untyped.expr) (env: env): Value.t =
   )
 
   | If0 (con, yes_b, no_b) -> (
-    let cond_res = ((get_float (eval_expr con env)) = 0.) in
-    if cond_res then eval_expr yes_b env else eval_expr no_b env
+    let cond_body = eval_expr con env in 
+    let cond_res = (match cond_body with 
+    | Float f -> f
+    | Closure (cap, body, closure_env) -> let foo = (Closure (cap, body, closure_env)) in 
+    ((raise (EvalExn ("Non-number in if0: " ^ Value.show foo))))) in
+    if (cond_res = 0.) then eval_expr yes_b env else eval_expr no_b env
   )
 
 
@@ -137,7 +138,7 @@ let rec eval_expr (e: Untyped.expr) (env: env): Value.t =
   )
 
   | Fun (args, body) -> (
-    Closure (args, body, env) (* todo dynamic scope bad!*)
+    Closure (args, body, env)
   )
 
 
@@ -161,7 +162,7 @@ let rec eval_expr (e: Untyped.expr) (env: env): Value.t =
         ))); *)
         let evaled_args: Value.t list = (map args (fun arg_p -> eval_expr arg_p env)) in
         let zipped_args = (zip evaled_args params (fun arg_p -> fun param_p -> ( (param_p, arg_p)))) in
-        let final_call_env = (add_values_to_env closure_env zipped_args) in (* todo: devious testcase here. Add to env, and override inside closure capture (not call). try other permutations too*) 
+        let final_call_env = (add_values_to_env closure_env zipped_args) in
         (eval_expr body final_call_env)
 
       )
