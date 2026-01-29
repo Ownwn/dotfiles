@@ -1,0 +1,6 @@
+result: |
+  (Value.ValueError "Undefined variable: x")
+stdout: |
+  <EOF>
+stderr: |
+  <EOF>

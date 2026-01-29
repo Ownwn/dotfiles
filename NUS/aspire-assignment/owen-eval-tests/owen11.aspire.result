@@ -1,0 +1,6 @@
+result: |
+  (Value.Value (Value.Float 3.))
+stdout: |
+  <EOF>
+stderr: |
+  <EOF>

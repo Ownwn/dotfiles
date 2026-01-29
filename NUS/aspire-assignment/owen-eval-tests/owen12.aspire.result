@@ -1,0 +1,7 @@
+result: |
+  (Value.ValueError
+   "Non-number in if0: (Value.Closure ([b], (Surface.Var b), Value.EmptyEnv))")
+stdout: |
+  <EOF>
+stderr: |
+  <EOF>

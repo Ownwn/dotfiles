@@ -1,0 +1,6 @@
+result: |
+  Exception(Main_pass.Parse, Aspire.Surface.ParseExn("Duplicate identifier: x"))
+stdout: |
+  <EOF>
+stderr: |
+  <EOF>

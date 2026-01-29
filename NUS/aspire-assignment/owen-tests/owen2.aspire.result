@@ -1,6 +1,0 @@
-result: |
-  Exception(Main_pass.Parse, Aspire.Surface.ParseExn("Invalid binary operation format"))
-stdout: |
-  <EOF>
-stderr: |
-  <EOF>
