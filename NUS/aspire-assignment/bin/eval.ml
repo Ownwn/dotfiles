@@ -5,27 +5,6 @@ open Aspire.Value
 other exceptions should be raised. *)
 exception EvalExn of string
 
-let env_update (name: Ident.t) (value: Value.t) (env: env): env =
-  ConsEnv (name, value, env)
-
-let rec env_lookup (name: Ident.t) (env: env): Value.t option =
-  match env with
-  | EmptyEnv -> None
-  | ConsEnv (k, v, rest) -> if (k = name) then Some v else env_lookup name rest
-  
-(* Evaluate a binop applied to two floats.  May raise EvalExn on division by
-zero.
-
-Hint: For compaing a float with zero, use `=`. *)
-let eval_binop (op: Untyped.binop) (x: float) (y: float): float =
-  match op with
-  | Add -> x +. y
-  | Mul -> x *. y
-  | Div -> (if (not (y = 0.)) then x /. y else raise (EvalExn "Division by zero"))
-  | Sub -> x -. y
-
-  (* dune exec -- aspire test owen-tests --detail --ref=all *)
-
 let rec length(l: 'a list): int = 
   match l with 
   | [] -> 0
@@ -42,22 +21,37 @@ let rec find_duplicate (l: 'a list): 'a option =
   | [] -> None
   | head :: tail -> if (contains head tail) then (Some head) else (find_duplicate tail)
 
-
-
-  (* Used for debugging closure call errors with the wrong number of args *)
-let rec debug_print_list(l: 'a list) (stringify: 'a -> string): unit = 
-  match l with 
-  | [] -> ()
-  | head :: tail -> 
-    let str = (stringify head) in 
-     (print_endline str); debug_print_list tail stringify
-
-
 (* this is FIFO, can swap the reduce and accumulator call order to reverse it *)
 let rec reduce (identity: 'a) (accumulator: 'a -> 'b -> 'a) (list: 'b list): 'a = 
   match list with
   | [] -> identity
   | (head: 'b) :: (tail: 'b list) -> reduce (accumulator identity head) accumulator tail
+
+
+(* FIFO *)
+let rec zip (l1: 'a list) (l2: 'b list) (zipper: 'a -> 'b -> 'c): 'c list =
+    let fail = fun () -> raise ( EvalExn "List sizes differ in zip call :(") in (* Should never be raised unless the eval impl gets messed up*)
+    match l1 with 
+    | [] -> (match l2 with | [] -> [] | _ :: _ -> fail ())
+    | head :: tail -> (
+      match l2 with 
+      | [] -> fail ()
+      | head2 :: tail2 -> ((zipper head head2) :: (zip tail tail2 zipper))
+    )
+
+(* FIFO *)
+let rec map(l: 'a list) (mapper: 'a -> 'b): 'b list = 
+  match l with 
+  | [] -> []
+  | head :: tail -> (mapper head) :: map tail mapper
+
+let env_update (name: Ident.t) (value: Value.t) (env: env): env =
+  ConsEnv (name, value, env)
+
+let rec env_lookup (name: Ident.t) (env: env): Value.t option =
+  match env with
+  | EmptyEnv -> None
+  | ConsEnv (k, v, rest) -> if (k = name) then Some v else env_lookup name rest
 
 
 (* Adds all the variables in new_var_list to old_env (evaluates them first), they should shadow/override any old definitions *)
@@ -75,24 +69,28 @@ let add_values_to_env (old_env: env) (new_var_list: (Ident.t * Value.t) list): e
       in 
       (reduce old_env (accumulator) new_var_list) 
 
+  
+(* Evaluate a binop applied to two floats.  May raise EvalExn on division by
+zero.
+
+Hint: For compaing a float with zero, use `=`. *)
+let eval_binop (op: Untyped.binop) (x: float) (y: float): float =
+  match op with
+  | Add -> x +. y
+  | Mul -> x *. y
+  | Div -> (if (not (y = 0.)) then x /. y else raise (EvalExn "Division by zero"))
+  | Sub -> x -. y
+
+  (* dune exec -- aspire test owen-tests --detail --ref=all *)
 
 
-(* FIFO *)
-let rec zip (l1: 'a list) (l2: 'b list) (zipper: 'a -> 'b -> 'c): 'c list =
-    let fail = fun () -> (failwith "List sizes differ in zip call :(") in
-    match l1 with 
-    | [] -> (match l2 with | [] -> [] | _ :: _ -> fail ())
-    | head :: tail -> (
-      match l2 with 
-      | [] -> fail ()
-      | head2 :: tail2 -> ((zipper head head2) :: (zip tail tail2 zipper))
-    )
-
-(* FIFO *)
-let rec map(l: 'a list) (mapper: 'a -> 'b): 'b list = 
+  (* Used for debugging closure call errors with the wrong number of args *)
+let rec debug_print_list(l: 'a list) (stringify: 'a -> string): unit = 
   match l with 
-  | [] -> []
-  | head :: tail -> (mapper head) :: map tail mapper
+  | [] -> ()
+  | head :: tail -> 
+    let str = (stringify head) in 
+     (print_endline str); debug_print_list tail stringify
 
 
 (* Evaluate an expression in a given environment.  EvalExn on errors. *)
