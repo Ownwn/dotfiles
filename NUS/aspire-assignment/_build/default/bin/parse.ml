@@ -42,33 +42,50 @@ let rec check_identifiers (bindings: Ident.t list) : unit = (* todo need to use 
   match find_duplicate bindings with | None -> () | _ -> (* todo can i use if expr instead of match to grab Option? *)
     failwith "todo error name here"
 
-let parse_let_binding (parse_expr: Sexp.t -> expr) (bindings: Sexp.t list) (fail_function: unit -> expr): expr = 
+let parse_let_binding (parse_expr: Sexp.t -> expr) (bindings: Sexp.t list): expr = 
   match bindings with 
-        | [defs_raw; body] -> (
-          match defs_raw with 
-          | Atom _ -> failwith "todo bad atom"
-          | List def_pairs -> (
-            
-            let binding_mapper: Token.token -> binding = fun tok -> (
-              match tok with 
-              | List [Atom identifier; value] -> ((Ident (identifier)), (parse_expr value)) 
-              | _ -> (failwith "todo wrong list in let body!")
-            ) in
-            
-            let bind_list: binding list = (List.map binding_mapper def_pairs) in 
-            
-            (* this line not working *)
-            let duplicate_bind_option: string option = (find_duplicate (List.map ((fun b -> (let (var_identifier, _) = b in str_of_ident var_identifier)): binding -> string ) bind_list)) in
-            
-            match duplicate_bind_option with 
-            | Some dupe -> (raise (ParseExn ("Duplicate identifier: " ^ dupe)))
-            | None -> Let (bind_list, parse_expr body)
-          )
-          
-        
-        )
-        | _ -> fail_function ()
+  | [List def_pairs; body] -> (
+    let binding_mapper: Token.token -> binding = fun tok -> (
+      match tok with 
+      | List [Atom identifier; value] -> ((Ident (identifier)), (parse_expr value)) 
+      | _ -> (failwith "todo wrong list in let body!")
+    ) in
+    
+    let bind_list: binding list = (List.map binding_mapper def_pairs) in 
+    
+    (* this line not working *)
+    let duplicate_bind_option: string option = (find_duplicate (List.map ((fun b -> (let (var_identifier, _) = b in str_of_ident var_identifier)): binding -> string ) bind_list)) in
+    
+    match duplicate_bind_option with 
+    | Some dupe -> (raise (ParseExn ("Duplicate identifier: " ^ dupe)))
+    | None -> Let (bind_list, parse_expr body)
+    
+  
+  )
+  | _ -> raise (ParseExn "Invalid let format")
 
+
+let parse_fun_declaration (parse_expr: Sexp.t -> expr) (function_decal: Sexp.t list): expr = 
+  match function_decal with 
+  | [List args; body] -> (
+    let arg_mapper: Sexp.t -> Ident.t = fun tok -> (
+      match tok with 
+      | Atom a -> (
+        match make_ident a with 
+        | Some id -> id
+        | None -> (raise (ParseExn ("Invalid identifier in function parameter:" ^ a)))
+      
+      )
+      | _ -> (failwith "todo bad here")
+
+    ) in 
+
+    let ident_list: Ident.t list = (List.map arg_mapper args) in
+    Fun (ident_list, parse_expr body)
+  
+  )
+
+  | _ -> raise (ParseExn "Invalid fun format")
 
 (* Parse an s-expression into an expr.
 
@@ -102,18 +119,32 @@ let rec parse_expr (sexp: Sexp.t) : expr =
       )
 
       | "let" ->  (
-        let let_fail = fun () -> (raise (ParseExn "Invalid let format")) in
-
-        parse_let_binding parse_expr tail let_fail
+        parse_let_binding (parse_expr) (tail)
       )
 
-      | ttt ->  print_endline ttt; (failwith "other bad parse todo")
+      | "fun" -> (
+        parse_fun_declaration (parse_expr) (tail)
+      )
+
+      | bad_var -> print_endline bad_var; (failwith "other bad parse todo")
 
     
     )
   )
 
-  | _ -> failwith "parse NYI"
+  | List (head :: tail) -> (
+    failwith "nah bad :("
+  )
+
+(* 
+  | bob -> failwith ("rip: " ^ (match bob with 
+  | Atom hh -> ("atom and " ^ hh)
+  | nah -> ("other one: " ^ Sexp.to_string nah)
+  
+  
+  )) *)
+
+  | _ -> raise (ParseExn "Null expression")
 
   
 
