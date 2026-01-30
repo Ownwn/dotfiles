@@ -82,7 +82,7 @@ let rec parse_expr (sexp: Sexp.t) : expr =
     | None -> (
       match make_ident a with 
       | Some ident -> Var ident
-      | None -> failwith "todo checkme here aa"
+      | None -> raise (ParseExn ("Invalid identifier in variable reference: " ^ a))
     )
   )
 
@@ -96,12 +96,9 @@ let rec parse_expr (sexp: Sexp.t) : expr =
     | None -> (
       match head with 
       | "if0" -> (
-
-      if (not (List.for_all (fun bb -> (print_endline (Sexp.to_string bb)); true) tail)) then (failwith "nahahah") else
-
         match tail with 
-        | [con; yes_b; no_b] -> print_endline "here!"; (If0 (parse_expr con, parse_expr yes_b, parse_expr no_b))
-        | _ -> failwith "Bad If0 operand"
+        | [con; yes_b; no_b] -> (If0 (parse_expr con, parse_expr yes_b, parse_expr no_b))
+        | _ -> raise (ParseExn "Invalid if0 format")
       )
 
       | "let" ->  (
@@ -110,7 +107,7 @@ let rec parse_expr (sexp: Sexp.t) : expr =
         parse_let_binding parse_expr tail let_fail
       )
 
-      | _ -> (failwith "other bad parse todo")
+      | ttt ->  print_endline ttt; (failwith "other bad parse todo")
 
     
     )
@@ -120,7 +117,7 @@ let rec parse_expr (sexp: Sexp.t) : expr =
 
   
 
-  
+  (* if (not (List.for_all (fun bb -> (print_endline (Sexp.to_string bb)); true) tail)) then (failwith "nahahah") else *)
   
 
 
