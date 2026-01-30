@@ -35,9 +35,39 @@ let make_ident (s: string) : Ident.t option =
     else Some (Ident.Ident s)
 
 
+let str_of_ident (id: Ident.t): string = 
+  (match id with | Ident s -> s)
+
 let rec check_identifiers (bindings: Ident.t list) : unit = (* todo need to use this actually!*)
   match find_duplicate bindings with | None -> () | _ -> (* todo can i use if expr instead of match to grab Option? *)
     failwith "todo error name here"
+
+let parse_let_binding (parse_expr: Sexp.t -> expr) (bindings: Sexp.t list) (fail_function: unit -> expr): expr = 
+  match bindings with 
+        | [defs_raw; body] -> (
+          match defs_raw with 
+          | Atom _ -> failwith "todo bad atom"
+          | List def_pairs -> (
+            
+            let binding_mapper: Token.token -> binding = fun tok -> (
+              match tok with 
+              | List [Atom identifier; value] -> ((Ident (identifier)), (parse_expr value)) 
+              | _ -> (failwith "todo wrong list in let body!")
+            ) in
+            
+            let bind_list: binding list = (List.map binding_mapper def_pairs) in 
+            
+            (* this line not working *)
+            let duplicate_bind_option: string option = (find_duplicate (List.map ((fun b -> (let (var_identifier, _) = b in str_of_ident var_identifier)): binding -> string ) bind_list)) in
+            
+            match duplicate_bind_option with 
+            | Some dupe -> (raise (ParseExn ("Duplicate identifier: " ^ dupe)))
+            | None -> Let (bind_list, parse_expr body)
+          )
+          
+        
+        )
+        | _ -> fail_function ()
 
 
 (* Parse an s-expression into an expr.
@@ -61,17 +91,24 @@ let rec parse_expr (sexp: Sexp.t) : expr =
     | Some bin -> (
       match tail with 
       | [op1; op2] -> (BinOp (bin, parse_expr op1, parse_expr op2))
-      | _ -> (failwith "tood bad num of operands")
+      | _ -> raise (ParseExn "Invalid binary operation format")
     )
     | None -> (
       match head with 
       | "if0" -> (
+
+      if (not (List.for_all (fun bb -> (print_endline (Sexp.to_string bb)); true) tail)) then (failwith "nahahah") else
+
         match tail with 
-        | [con; yes_b; no_b] -> (If0 (parse_expr con, parse_expr yes_b, parse_expr no_b))
+        | [con; yes_b; no_b] -> print_endline "here!"; (If0 (parse_expr con, parse_expr yes_b, parse_expr no_b))
         | _ -> failwith "Bad If0 operand"
       )
 
-      | "let" ->  (failwith "okokokokokokk")
+      | "let" ->  (
+        let let_fail = fun () -> (raise (ParseExn "Invalid let format")) in
+
+        parse_let_binding parse_expr tail let_fail
+      )
 
       | _ -> (failwith "other bad parse todo")
 

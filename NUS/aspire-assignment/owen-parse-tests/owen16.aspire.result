@@ -1,5 +1,5 @@
 result: |
-  (Value.ValueError "Undefined variable: foo")
+  Exception(Main_pass.Parse, Aspire.Surface.ParseExn("Invalid let format"))
 stdout: |
   <EOF>
 stderr: |
